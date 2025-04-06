@@ -73,9 +73,35 @@ def convert_uvm_to_pyu(uvm_code):
     
     return pyuvm_code
 
+def generate_makefile(output_folder, top_level, module_name):
+    """
+    Generates a Makefile for running the converted PyUVM Python testbench.
+    """
+    makefile_content = f"""TOPLEVEL_LANG ?= verilog
+SIM ?= questa
+PWD=$(shell pwd)
+
+ifeq ($(TOPLEVEL_LANG),verilog)
+    VERILOG_SOURCES = $(PWD)/RTL/*.sv
+else ifeq ($(TOPLEVEL_LANG),vhdl)
+    VHDL_SOURCES = $(PWD)/ALU.vhdl
+else
+    $(error A valid value (verilog or vhdl) was not provided for TOPLEVEL_LANG=$(TOPLEVEL_LANG))
+endif
+
+TOPLEVEL := {top_level}              # Module name
+MODULE   := {module_name}            # Python testbench file name (without .py)
+
+include $(shell cocotb-config --makefiles)/Makefile.sim
+"""
+    makefile_path = os.path.join(output_folder, "Makefile")
+    with open(makefile_path, 'w') as makefile:
+        makefile.write(makefile_content)
+
 def process_sv_files(input_folder, output_folder):
     """
     Processes all .sv files in the input folder, converts them to PyUVM, and saves them in the output folder.
+    Also generates a Makefile for running the converted Python testbench.
     """
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
@@ -89,6 +115,11 @@ def process_sv_files(input_folder, output_folder):
             output_file_path = os.path.join(output_folder, filename.replace('.sv', '.py'))
             with open(output_file_path, 'w') as output_file:
                 output_file.write(pyuvm_code)
+    
+    # Generate Makefile
+    top_level = "dut"  # Replace with your top-level module name
+    module_name = "tb"     # Replace with your Python testbench file name (without .py)
+    generate_makefile(output_folder, top_level, module_name)
 
 if __name__ == "__main__":
     input_folder = 'input'
