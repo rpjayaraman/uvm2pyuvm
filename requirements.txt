@@ -1,0 +1,4 @@
+regex
+cocotb
+cocotb-coverage
+pyuvm
